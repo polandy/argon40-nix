@@ -78,14 +78,6 @@ Simply import the NixOS module as follows:
                 enable = true;
 
                 settings = {
-                    # HDD fan speed configuration (for SATA drives in the EON).
-                    # Uses SMART temperature data; requires mdadm for RAID setups.
-                    hddFanspeed = [
-                        { temperature = 35; speed = 30; }
-                        { temperature = 45; speed = 55; }
-                        { temperature = 50; speed = 100; }
-                    ];
-
                     oled = {
                         # Configure what modules will show up on the OLED screen.
                         screenList = ["clock" "cpu" "storage" "raid" "ram" "temp" "ip"];
@@ -95,8 +87,20 @@ Simply import the NixOS module as follows:
                 };
             };
 
-            # All this does is enable the RTC service.
-            eon.enable = true;
+            # EON-specific settings (RTC and HDD fan control)
+            eon = {
+                enable = true;
+
+                settings = {
+                    # HDD fan speed configuration (for SATA drives).
+                    # Uses SMART temperature data; mdadm is added to PATH for RAID setups.
+                    hddFanspeed = [
+                        { temperature = 35; speed = 30; }
+                        { temperature = 45; speed = 55; }
+                        { temperature = 50; speed = 100; }
+                    ];
+                };
+            };
         };
     };
 }

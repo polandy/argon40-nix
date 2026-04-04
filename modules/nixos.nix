@@ -58,25 +58,6 @@ in {
             ];
           };
 
-          hddFanspeed = lib.mkOption {
-            type = lib.types.listOf (lib.types.submodule {
-              options = {
-                temperature = lib.mkOption {
-                  type = lib.types.ints.unsigned;
-                  description = "The temperature to activate this HDD fan speed at";
-                };
-
-                speed = lib.mkOption {
-                  type = lib.types.ints.unsigned;
-                  description = "The speed the HDD fans will be running at (as a percentage)";
-                };
-              };
-            });
-
-            default = [];
-            description = "HDD temperature-to-fan-speed mappings. Empty list disables HDD fan control.";
-          };
-
           oled = {
             switchDuration = lib.mkOption {
               type = lib.types.ints.unsigned;
@@ -138,8 +119,24 @@ in {
         };
 
         settings = {
-          # rtc = {
-          # };
+          hddFanspeed = lib.mkOption {
+            type = lib.types.listOf (lib.types.submodule {
+              options = {
+                temperature = lib.mkOption {
+                  type = lib.types.ints.unsigned;
+                  description = "The temperature to activate this HDD fan speed at";
+                };
+
+                speed = lib.mkOption {
+                  type = lib.types.ints.unsigned;
+                  description = "The speed the HDD fans will be running at (as a percentage)";
+                };
+              };
+            });
+
+            default = [];
+            description = "HDD temperature-to-fan-speed mappings. Empty list disables HDD fan control.";
+          };
         };
       };
     };
@@ -184,7 +181,7 @@ in {
           mode = "0666";
         };
 
-        "argononed-hdd.conf" = lib.mkIf (cfg.one.enable && cfg.one.settings.hddFanspeed != []) {
+        "argononed-hdd.conf" = lib.mkIf (cfg.eon.enable && cfg.eon.settings.hddFanspeed != []) {
           text = ''
             #
             # Argon Fan Speed Configuration (HDD)
@@ -194,7 +191,7 @@ in {
               speed,
               temperature,
             }: "${toString temperature}=${toString speed}")
-            cfg.one.settings.hddFanspeed}
+            cfg.eon.settings.hddFanspeed}
           '';
           mode = "0666";
         };
@@ -230,7 +227,7 @@ in {
         wantedBy = ["multi-user.target"];
 
         # mdadm is needed for HDD temperature detection in RAID setups
-        path = lib.optional (cfg.one.settings.hddFanspeed != []) pkgs.mdadm;
+        path = lib.optional (cfg.eon.settings.hddFanspeed != []) pkgs.mdadm;
 
         serviceConfig = {
           Type = "simple";
