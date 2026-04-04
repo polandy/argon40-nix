@@ -8,114 +8,118 @@
 
   packages = import ../packages {
     inherit pkgs;
-    enableOled = cfg.eon.enable;
+    enableOled = cfg.enable;
   };
 in {
   options = {
     programs.argon = {
-      one = {
-        enable = lib.mkEnableOption "Enable argononed service";
+      enable = lib.mkEnableOption "Enable Argon40 case support (fan control, OLED, power button)";
 
-        package = lib.mkOption {
-          type = lib.types.package;
-          default = packages.argononed;
+      package = lib.mkOption {
+        type = lib.types.package;
+        default = packages.argononed;
+        description = "The argononed package to use.";
+      };
+
+      settings = {
+        displayUnits = lib.mkOption {
+          type = lib.types.enum ["celsius" "fahrenheit"];
+          default = "celsius";
+          description = "Temperature unit for display.";
         };
 
-        settings = {
-          displayUnits = lib.mkOption {
-            type = lib.types.enum ["celsius" "fahrenheit"];
-            default = "celsius";
-          };
-
-          fanspeed = lib.mkOption {
-            type = lib.types.listOf (lib.types.submodule {
-              options = {
-                temperature = lib.mkOption {
-                  type = lib.types.ints.unsigned;
-                  description = "The temperature to activate this fan speed at";
-                };
-
-                speed = lib.mkOption {
-                  type = lib.types.ints.unsigned;
-                  description = "The speed the fans will be running at (as a percentage)";
-                };
+        fanspeed = lib.mkOption {
+          type = lib.types.listOf (lib.types.submodule {
+            options = {
+              temperature = lib.mkOption {
+                type = lib.types.ints.unsigned;
+                description = "The temperature to activate this fan speed at.";
               };
-            });
 
-            default = [
-              {
-                temperature = 55;
-                speed = 30;
-              }
-              {
-                temperature = 60;
-                speed = 55;
-              }
-              {
-                temperature = 65;
-                speed = 100;
-              }
-            ];
-          };
-
-          oled = {
-            switchDuration = lib.mkOption {
-              type = lib.types.ints.unsigned;
-              default = 30;
-            };
-
-            screenList = lib.mkOption {
-              type = lib.types.listOf (lib.types.enum ["clock" "cpu" "storage" "raid" "ram" "temp" "ip"]);
-              default = ["clock" "cpu" "storage" "raid" "ram" "temp" "ip"];
-            };
-          };
-
-          ir = {
-            enable = lib.mkEnableOption "Enable IR remote support";
-
-            keymap = lib.mkOption {
-              type = lib.types.attrsOf lib.types.str;
-
-              description = "Map each IR code to a key. The default list contains the code mappings for the Argon IR remote.";
-
-              default = {
-                "POWER" = "00ff39c6";
-                "UP" = "00ff53ac";
-                "DOWN" = "00ff4bb4";
-                "LEFT" = "00ff9966";
-                "RIGHT" = "00ff837c";
-                "VOLUMEUP" = "00ff01fe";
-                "VOLUMEDOWN" = "00ff817e";
-                "OK" = "00ff738c";
-                "HOME" = "00ffd32c";
-                "MENU" = "00ffb946";
-                "BACK" = "00ff09f6";
+              speed = lib.mkOption {
+                type = lib.types.ints.unsigned;
+                description = "The speed the fans will be running at (as a percentage).";
               };
             };
+          });
 
-            gpio = {
-              enable = lib.mkOption {
-                type = lib.types.bool;
-                default = true;
-                description = "Enable the overlay that configures the GPIO pins of the RPI correctly";
-              };
+          default = [
+            {
+              temperature = 55;
+              speed = 30;
+            }
+            {
+              temperature = 60;
+              speed = 55;
+            }
+            {
+              temperature = 65;
+              speed = 100;
+            }
+          ];
+          description = "CPU temperature-to-fan-speed mappings.";
+        };
 
-              pin = lib.mkOption {
-                type = lib.types.int;
-                description = "The pin to configure to be used for the IR receiver. Should not need to be changed";
-                default = 23;
-              };
+        oled = {
+          switchDuration = lib.mkOption {
+            type = lib.types.ints.unsigned;
+            default = 30;
+            description = "How long (in seconds) to display each screen before switching.";
+          };
+
+          screenList = lib.mkOption {
+            type = lib.types.listOf (lib.types.enum ["clock" "cpu" "storage" "raid" "ram" "temp" "ip"]);
+            default = ["clock" "cpu" "storage" "raid" "ram" "temp" "ip"];
+            description = "List of screens to cycle through on the OLED display.";
+          };
+        };
+
+        ir = {
+          enable = lib.mkEnableOption "Enable IR remote support";
+
+          keymap = lib.mkOption {
+            type = lib.types.attrsOf lib.types.str;
+
+            description = "Map each IR code to a key. The default list contains the code mappings for the Argon IR remote.";
+
+            default = {
+              "POWER" = "00ff39c6";
+              "UP" = "00ff53ac";
+              "DOWN" = "00ff4bb4";
+              "LEFT" = "00ff9966";
+              "RIGHT" = "00ff837c";
+              "VOLUMEUP" = "00ff01fe";
+              "VOLUMEDOWN" = "00ff817e";
+              "OK" = "00ff738c";
+              "HOME" = "00ffd32c";
+              "MENU" = "00ffb946";
+              "BACK" = "00ff09f6";
+            };
+          };
+
+          gpio = {
+            enable = lib.mkOption {
+              type = lib.types.bool;
+              default = true;
+              description = "Enable the overlay that configures the GPIO pins of the RPI correctly.";
+            };
+
+            pin = lib.mkOption {
+              type = lib.types.int;
+              description = "The pin to configure to be used for the IR receiver. Should not need to be changed.";
+              default = 23;
             };
           };
         };
       };
 
       eon = {
-        enable = lib.mkEnableOption "Enable argoneond service";
+        enable = lib.mkEnableOption "Enable Argon EON RTC (Real-Time Clock) service";
 
         package = lib.mkOption {
           type = lib.types.package;
           default = packages.argoneond;
+          description = "The argoneond package to use.";
         };
 
         settings = {
@@ -124,18 +128,18 @@ in {
               options = {
                 temperature = lib.mkOption {
                   type = lib.types.ints.unsigned;
-                  description = "The temperature to activate this HDD fan speed at";
+                  description = "The temperature to activate this HDD fan speed at.";
                 };
 
                 speed = lib.mkOption {
                   type = lib.types.ints.unsigned;
-                  description = "The speed the HDD fans will be running at (as a percentage)";
+                  description = "The speed the HDD fans will be running at (as a percentage).";
                 };
               };
             });
 
             default = [];
-            description = "HDD temperature-to-fan-speed mappings. Empty list disables HDD fan control.";
+            description = "HDD temperature-to-fan-speed mappings. Empty list disables HDD fan control. Only applicable to Argon EON.";
           };
         };
       };
@@ -145,12 +149,12 @@ in {
   config = {
     environment = {
       systemPackages =
-        lib.optional cfg.one.enable cfg.one.package
+        lib.optional cfg.enable cfg.package
         ++ lib.optional cfg.eon.enable cfg.eon.package
-        ++ lib.optional cfg.one.enable pkgs.i2c-tools;
+        ++ lib.optional cfg.enable pkgs.i2c-tools;
 
       etc = {
-        "argonunits.conf" = lib.mkIf cfg.one.enable (let
+        "argonunits.conf" = lib.mkIf cfg.enable (let
           mappings = {
             "celsius" = "C";
             "fahrenheit" = "F";
@@ -161,12 +165,12 @@ in {
             # Argon Unit Configuration
             # Generated by NixOS
             #
-            temperature=${mappings."${cfg.one.settings.displayUnits}"}
+            temperature=${mappings."${cfg.settings.displayUnits}"}
           '';
           mode = "0666";
         });
 
-        "argononed.conf" = lib.mkIf cfg.one.enable {
+        "argononed.conf" = lib.mkIf cfg.enable {
           text = ''
             #
             # Argon Fan Speed Configuration (CPU)
@@ -176,12 +180,12 @@ in {
               speed,
               temperature,
             }: "${toString temperature}=${toString speed}")
-            cfg.one.settings.fanspeed}
+            cfg.settings.fanspeed}
           '';
           mode = "0666";
         };
 
-        "argononed-hdd.conf" = lib.mkIf (cfg.eon.enable && cfg.eon.settings.hddFanspeed != []) {
+        "argononed-hdd.conf" = lib.mkIf (cfg.enable && cfg.eon.settings.hddFanspeed != []) {
           text = ''
             #
             # Argon Fan Speed Configuration (HDD)
@@ -196,14 +200,14 @@ in {
           mode = "0666";
         };
 
-        "argoneonoled.conf" = lib.mkIf cfg.one.enable {
+        "argoneonoled.conf" = lib.mkIf cfg.enable {
           text = ''
             #
             # Argon OLED Configuration
             # Generated by NixOS
             #
-            switchduration=${toString cfg.one.settings.oled.switchDuration}
-            screenlist="${lib.concatStringsSep " " cfg.one.settings.oled.screenList}"
+            switchduration=${toString cfg.settings.oled.switchDuration}
+            screenlist="${lib.concatStringsSep " " cfg.settings.oled.screenList}"
           '';
           mode = "0666";
         };
@@ -221,8 +225,8 @@ in {
     };
 
     systemd.services = {
-      argononed = lib.mkIf cfg.one.enable {
-        description = "Argon One Fan and Button Service";
+      argononed = lib.mkIf cfg.enable {
+        description = "Argon Fan and Button Service";
         after = ["multi-user.target"];
         wantedBy = ["multi-user.target"];
 
@@ -233,7 +237,7 @@ in {
           Type = "simple";
           Restart = "always";
           RemainAfterExit = true;
-          ExecStart = "${cfg.one.package}/bin/argononed SERVICE";
+          ExecStart = "${cfg.package}/bin/argononed SERVICE";
         };
       };
 
@@ -251,7 +255,7 @@ in {
       };
     };
 
-    services.lirc = lib.mkIf cfg.one.settings.ir.enable {
+    services.lirc = lib.mkIf cfg.settings.ir.enable {
       enable = true;
 
       options = ''
@@ -279,7 +283,7 @@ in {
             frequency   38000
 
               begin codes
-                ${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: value: "KEY_${name}  0x${value}") cfg.one.settings.ir.keymap)}
+                ${lib.concatStringsSep "\n" (lib.mapAttrsToList (name: value: "KEY_${name}  0x${value}") cfg.settings.ir.keymap)}
               end codes
 
           end remote
@@ -288,7 +292,7 @@ in {
     };
 
     # Configure GPIO overlay for IR receiver.
-    hardware.deviceTree = lib.mkIf (cfg.one.settings.ir.enable && cfg.one.settings.ir.gpio.enable) {
+    hardware.deviceTree = lib.mkIf (cfg.settings.ir.enable && cfg.settings.ir.gpio.enable) {
       overlays = [
         # Equivalent to:
         # https://github.com/raspberrypi/linux/blob/rpi-6.1.y/arch/arm/boot/dts/overlays/gpio-ir-overlay.dts
@@ -311,7 +315,7 @@ in {
                     pinctrl-0 = <&gpio_ir_pins>;
 
                     // pin number, high or low
-                    gpios = <&gpio ${toString cfg.one.settings.ir.gpio.pin} 1>;
+                    gpios = <&gpio ${toString cfg.settings.ir.gpio.pin} 1>;
 
                     // parameter for keymap name
                     linux,rc-map-name = "rc-rc6-mce";
@@ -325,7 +329,7 @@ in {
                 target = <&gpio>;
                 __overlay__ {
                   gpio_ir_pins: gpio_ir_pins@12 {
-                    brcm,pins = <${toString cfg.one.settings.ir.gpio.pin}>;  // pin 23
+                    brcm,pins = <${toString cfg.settings.ir.gpio.pin}>;  // pin 23
                     brcm,function = <0>;                            // in
                     brcm,pull = <2>;                                // up
                   };

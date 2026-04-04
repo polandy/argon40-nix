@@ -1,112 +1,182 @@
-# Argon40 scripts for NixOS
+# Argon40 NixOS Module
 
-This flake aims to package the [Argon40](https://argon40.com/) install script for NixOS so that it can be easily installed on a Raspberry Pi running NixOS. The [install script](https://download.argon40.com/argon1.sh) was written for Raspberry Pi OS and its derivatives and thus expects to be run in an FHS compliant environment. This flake was written using the install script as a main inspiration. Using this flake also has the advantage of declaritively specifying the fan speed mappings of the case, which is preferable when using NixOS. I personally have the [Argon ONE M.2 Case for Raspberry Pi 4](https://argon40.com/products/argon-one-m-2-case-for-raspberry-pi-4) and the [Argon EON Pi NAS](https://argon40.com/products/argon-eon-pi-nas) and have tested this flake on both.
+This flake provides NixOS modules for [Argon40](https://argon40.com/) Raspberry Pi cases. It packages the functionality from the [Argon40 install script](https://download.argon40.com/argon1.sh) for declarative NixOS configuration.
+
+Supported cases:
+- **Argon ONE** (including M.2 variant) - CPU fan control, power button, OLED display, IR remote
+- **Argon EON** - All Argon ONE features plus HDD fan control and RTC (Real-Time Clock)
 
 ## Installation
 
 ### With flakes
 
-Add the following into the desired `flake.nix` file.
+Add the following to your `flake.nix`:
 
 ```nix
 {
-    inputs.argon40-nix.url = "github:guusvanmeerveld/argon40-nix";
+  inputs.argon40-nix.url = "github:guusvanmeerveld/argon40-nix";
 }
 ```
 
-## Usage
-
-### Module import
-
-Simply import the NixOS module as follows:
+Then import the module in your NixOS configuration:
 
 ```nix
 { inputs, ... }: {
-    imports = [inputs.argon40-nix.nixosModules.default];
+  imports = [ inputs.argon40-nix.nixosModules.default ];
 }
 ```
 
-### Example configuration for Argon ONE case
+## Module Structure
+
+The module uses a clean, hierarchical structure:
+
+| Option | Description |
+|--------|-------------|
+| `programs.argon.enable` | Enables the main service (CPU fan, OLED, power button, IR) |
+| `programs.argon.settings.*` | Configuration for fan speeds, OLED screens, IR remote |
+| `programs.argon.eon.enable` | Enables the EON RTC service |
+| `programs.argon.eon.settings.*` | EON-specific settings (HDD fan control) |
+
+## Configuration Examples
+
+### Argon ONE Case
+
+Basic configuration for the Argon ONE or Argon ONE M.2 case:
 
 ```nix
 { inputs, ... }: {
-    imports = [inputs.argon40-nix.nixosModules.default];
+  imports = [ inputs.argon40-nix.nixosModules.default ];
 
-    config = {
-        programs.argon.one = {
-            enable = true;
+  programs.argon = {
+    enable = true;
 
-            settings = {
-                # Is 'celsius' by default, can also be set to 'fahrenheit'
-                displayUnits = "celsius";
+    settings = {
+      # Temperature unit: "celsius" (default) or "fahrenheit"
+      displayUnits = "celsius";
 
-                # This is the same config as the original Argon40 config.
-                # This is also the default config for this flake.
-                fanspeed = [
-                    {
-                        # This the temperature threshold at which this fan speed will activate.
-                        # The temperature is in the above specified unit.
-                        temperature = 55;
-                        # This is speed percentage at which the fan will spin.
-                        speed = 30;
-                    }
-                    {
-                        temperature = 60;
-                        speed = 55;
-                    }
-                    {
-                        temperature = 65;
-                        speed = 100;
-                    }
-                ];
-            };
-        };
+      # CPU fan speed curve
+      fanspeed = [
+        { temperature = 55; speed = 30; }   # 30% fan at 55°C
+        { temperature = 60; speed = 55; }   # 55% fan at 60°C
+        { temperature = 65; speed = 100; }  # 100% fan at 65°C
+      ];
     };
+  };
 }
 ```
 
-### Example configuration for Argon EON case
+### Argon EON Case
+
+The Argon EON is a NAS case with HDD bays and an RTC module. It uses the same base service as the Argon ONE for CPU fan control and OLED display:
 
 ```nix
 { inputs, ... }: {
-    imports = [inputs.argon40-nix.nixosModules.default];
+  imports = [ inputs.argon40-nix.nixosModules.default ];
 
-    config = {
-        programs.argon = {
-            # IMPORTANT: Note that the module for the Argon ONE also has to be enabled in order for the OLED screen on the EON to work, since that functionality is part of the Argon ONE service.
-            one = {
-                enable = true;
+  programs.argon = {
+    enable = true;  # Base service for CPU fan, OLED, power button
 
-                settings = {
-                    oled = {
-                        # Configure what modules will show up on the OLED screen.
-                        screenList = ["clock" "cpu" "storage" "raid" "ram" "temp" "ip"];
-                        # Configure how long it takes to switch between modules.
-                        switchDuration = 30;
-                    };
-                };
-            };
+    settings = {
+      # CPU fan speed curve
+      fanspeed = [
+        { temperature = 55; speed = 30; }
+        { temperature = 60; speed = 55; }
+        { temperature = 65; speed = 100; }
+      ];
 
-            # EON-specific settings (RTC and HDD fan control)
-            eon = {
-                enable = true;
-
-                settings = {
-                    # HDD fan speed configuration (for SATA drives).
-                    # Uses SMART temperature data; mdadm is added to PATH for RAID setups.
-                    hddFanspeed = [
-                        { temperature = 35; speed = 30; }
-                        { temperature = 45; speed = 55; }
-                        { temperature = 50; speed = 100; }
-                    ];
-                };
-            };
-        };
+      # OLED display configuration
+      oled = {
+        screenList = [ "clock" "cpu" "storage" "raid" "ram" "temp" "ip" ];
+        switchDuration = 30;  # seconds between screen changes
+      };
     };
+
+    # EON-specific features
+    eon = {
+      enable = true;  # Enable RTC service
+
+      settings = {
+        # HDD fan speed curve (uses SMART temperature data)
+        # mdadm is automatically added to PATH for RAID setups
+        hddFanspeed = [
+          { temperature = 35; speed = 30; }
+          { temperature = 45; speed = 55; }
+          { temperature = 50; speed = 100; }
+        ];
+      };
+    };
+  };
 }
 ```
 
-## Thanks to
+### IR Remote Configuration
+
+Enable support for the Argon IR remote:
+
+```nix
+programs.argon = {
+  enable = true;
+
+  settings.ir = {
+    enable = true;
+
+    # GPIO pin for IR receiver (default: 23)
+    gpio = {
+      enable = true;
+      pin = 23;
+    };
+
+    # Custom key mappings (defaults shown)
+    keymap = {
+      "POWER" = "00ff39c6";
+      "UP" = "00ff53ac";
+      "DOWN" = "00ff4bb4";
+      "LEFT" = "00ff9966";
+      "RIGHT" = "00ff837c";
+      "VOLUMEUP" = "00ff01fe";
+      "VOLUMEDOWN" = "00ff817e";
+      "OK" = "00ff738c";
+      "HOME" = "00ffd32c";
+      "MENU" = "00ffb946";
+      "BACK" = "00ff09f6";
+    };
+  };
+};
+```
+
+## Available Options
+
+### Base Options (`programs.argon.*`)
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enable` | bool | `false` | Enable Argon40 case support |
+| `package` | package | `argononed` | The argononed package to use |
+| `settings.displayUnits` | enum | `"celsius"` | Temperature unit (`"celsius"` or `"fahrenheit"`) |
+| `settings.fanspeed` | list | see example | CPU temperature-to-fan-speed mappings |
+| `settings.oled.screenList` | list | all screens | Screens to display on OLED |
+| `settings.oled.switchDuration` | int | `30` | Seconds between screen changes |
+| `settings.ir.enable` | bool | `false` | Enable IR remote support |
+| `settings.ir.keymap` | attrs | Argon remote | IR code to key mappings |
+| `settings.ir.gpio.enable` | bool | `true` | Enable GPIO overlay for IR |
+| `settings.ir.gpio.pin` | int | `23` | GPIO pin for IR receiver |
+
+### EON Options (`programs.argon.eon.*`)
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enable` | bool | `false` | Enable Argon EON RTC service |
+| `package` | package | `argoneond` | The argoneond package to use |
+| `settings.hddFanspeed` | list | `[]` | HDD temperature-to-fan-speed mappings |
+
+## Services
+
+This module manages two systemd services:
+
+- **`argononed.service`** - Main service for fan control, OLED display, and power button handling. Enabled by `programs.argon.enable`.
+- **`argoneond.service`** - EON RTC service. Enabled by `programs.argon.eon.enable`.
+
+## Thanks
 
 - [Argon40](https://argon40.com/) for providing such an awesome case, continuously providing updates and [open sourcing](https://github.com/Argon40Tech) their projects.
 - [okunze's repo](https://github.com/okunze/Argon40-ArgonOne-Script) containing an up to date version of the argon40 install script.
