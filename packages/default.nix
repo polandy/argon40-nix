@@ -6,11 +6,11 @@
     disableOled = !enableOled;
   };
 
-  argononed = pkgs.callPackage ./argononed.nix {
+  argon = pkgs.callPackage ./argon.nix {
     sourceFilesPackage = source;
   };
 
-  argoneond = pkgs.callPackage ./argoneond.nix {
+  argonEon = pkgs.callPackage ./argon-eon.nix {
     sourceFilesPackage = source;
   };
 }

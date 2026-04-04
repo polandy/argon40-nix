@@ -17,7 +17,7 @@ in {
 
       package = lib.mkOption {
         type = lib.types.package;
-        default = packages.argononed;
+        default = packages.argon;
         description = "The argononed package to use.";
       };
 
@@ -118,7 +118,7 @@ in {
 
         package = lib.mkOption {
           type = lib.types.package;
-          default = packages.argoneond;
+          default = packages.argonEon;
           description = "The argoneond package to use.";
         };
 
@@ -225,7 +225,7 @@ in {
     };
 
     systemd.services = {
-      argononed = lib.mkIf cfg.enable {
+      argon = lib.mkIf cfg.enable {
         description = "Argon Fan and Button Service";
         after = ["multi-user.target"];
         wantedBy = ["multi-user.target"];
@@ -241,7 +241,7 @@ in {
         };
       };
 
-      argoneond = lib.mkIf cfg.eon.enable {
+      argon-eon = lib.mkIf cfg.eon.enable {
         description = "Argon EON RTC Service";
         after = ["multi-user.target"];
         wantedBy = ["multi-user.target"];

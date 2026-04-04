@@ -144,37 +144,12 @@ programs.argon = {
 };
 ```
 
-## Available Options
-
-### Base Options (`programs.argon.*`)
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `enable` | bool | `false` | Enable Argon40 case support |
-| `package` | package | `argononed` | The argononed package to use |
-| `settings.displayUnits` | enum | `"celsius"` | Temperature unit (`"celsius"` or `"fahrenheit"`) |
-| `settings.fanspeed` | list | see example | CPU temperature-to-fan-speed mappings |
-| `settings.oled.screenList` | list | all screens | Screens to display on OLED |
-| `settings.oled.switchDuration` | int | `30` | Seconds between screen changes |
-| `settings.ir.enable` | bool | `false` | Enable IR remote support |
-| `settings.ir.keymap` | attrs | Argon remote | IR code to key mappings |
-| `settings.ir.gpio.enable` | bool | `true` | Enable GPIO overlay for IR |
-| `settings.ir.gpio.pin` | int | `23` | GPIO pin for IR receiver |
-
-### EON Options (`programs.argon.eon.*`)
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `enable` | bool | `false` | Enable Argon EON RTC service |
-| `package` | package | `argoneond` | The argoneond package to use |
-| `settings.hddFanspeed` | list | `[]` | HDD temperature-to-fan-speed mappings |
-
 ## Services
 
 This module manages two systemd services:
 
-- **`argononed.service`** - Main service for fan control, OLED display, and power button handling. Enabled by `programs.argon.enable`.
-- **`argoneond.service`** - EON RTC service. Enabled by `programs.argon.eon.enable`.
+- **`argon.service`** - Main service for fan control, OLED display, and power button handling. Enabled by `programs.argon.enable`.
+- **`argon-eon.service`** - EON RTC service. Enabled by `programs.argon.eon.enable`.
 
 ## Thanks
 
