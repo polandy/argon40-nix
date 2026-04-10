@@ -11,21 +11,29 @@ import time
 # Initialize I2C Bus
 import smbus
 
-try:
-	bus=smbus.SMBus(1)
-except Exception:
-	try:
-		# Older version
-		bus=smbus.SMBus(0)
-	except Exception:
-		print("Unable to detect i2c")
-		bus=None
+ADDR_OLED=0x3c
+
+def _find_oled_bus():
+	"""Try to find the I2C bus where the OLED is connected."""
+	# Try common buses: 1 (Pi4 default), 0 (older Pi), 5 (some Pi4 configurations)
+	for bus_num in [1, 0, 5]:
+		try:
+			test_bus = smbus.SMBus(bus_num)
+			# Try to communicate with the OLED at 0x3c
+			test_bus.write_byte(ADDR_OLED, 0)
+			return test_bus
+		except Exception:
+			continue
+	print("Unable to detect OLED on any i2c bus")
+	return None
+
+bus = _find_oled_bus()
 
 
 OLED_WD=128
 OLED_HT=64
 OLED_SLAVEADDRESS=0x6a
-ADDR_OLED=0x3c
+# ADDR_OLED defined above for bus detection
 
 OLED_NUMFONTCHAR=256
 
