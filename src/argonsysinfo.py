@@ -152,13 +152,21 @@ def argonsysinfo_getmaxhddtemp():
 
 def argonsysinfo_gethddtemp():
 	# May 2022: Used smartctl, hddtemp is not available on some platforms
-	hddtempcmd = "/usr/sbin/smartctl"
-	if os.path.exists(hddtempcmd) == False:
-		# Fallback for now
-		hddtempcmd = "/usr/sbin/hddtemp"
+	# Use shutil.which() to find commands in PATH (works on NixOS and other distros)
+	import shutil
+	hddtempcmd = shutil.which("smartctl")
+	if hddtempcmd is None:
+		# Fallback to hddtemp
+		hddtempcmd = shutil.which("hddtemp")
+	if hddtempcmd is None:
+		# Legacy fallback paths
+		if os.path.exists("/usr/sbin/smartctl"):
+			hddtempcmd = "/usr/sbin/smartctl"
+		elif os.path.exists("/usr/sbin/hddtemp"):
+			hddtempcmd = "/usr/sbin/hddtemp"
 
 	outputobj = {}
-	if os.path.exists(hddtempcmd):
+	if hddtempcmd is not None:
 		try:
 			tmp = os.popen("lsblk | grep -e '0 disk' | awk '{print $1}'").read()
 			alllines = tmp.split("\n")
@@ -174,10 +182,11 @@ def argonsysinfo_gethddtemp():
 
 def argonsysinfo_getdevhddtemp(hddtempcmd, curdev):
 	cmdstr = ""
-	if hddtempcmd == "/usr/sbin/hddtemp":
-		cmdstr = "/usr/sbin/hddtemp -n sata:/dev/"+curdev
-	elif hddtempcmd == "/usr/sbin/smartctl":
-		cmdstr = "/usr/sbin/smartctl -d sat -A /dev/"+curdev+" | grep Temperature_Celsius | awk '{print $10}'"
+	# Check command name regardless of full path (works with NixOS paths)
+	if hddtempcmd.endswith("hddtemp"):
+		cmdstr = hddtempcmd+" -n sata:/dev/"+curdev
+	elif hddtempcmd.endswith("smartctl"):
+		cmdstr = hddtempcmd+" -d sat -A /dev/"+curdev+" | grep Temperature_Celsius | awk '{print $10}'"
 
 	tempval = 0
 	if len(cmdstr) > 0:
