@@ -14,7 +14,7 @@ Add the following to your `flake.nix`:
 
 ```nix
 {
-  inputs.argon40-nix.url = "github:guusvanmeerveld/argon40-nix";
+  inputs.argon40-nix.url = "github:polandy/argon40-nix";
 }
 ```
 
