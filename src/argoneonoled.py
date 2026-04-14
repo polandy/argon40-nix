@@ -15,8 +15,8 @@ ADDR_OLED=0x3c
 
 def _find_oled_bus():
 	"""Try to find the I2C bus where the OLED is connected."""
-	# Try common buses: 1 (Pi4 default), 0 (older Pi), 5 (some Pi4 configurations)
-	for bus_num in [1, 0, 5]:
+	# Try bus 5 first (Argon Eon), then common buses: 1 (Pi4 default), 0 (older Pi)
+	for bus_num in [5, 1, 0]:
 		try:
 			test_bus = smbus.SMBus(bus_num)
 			# Try to communicate with the OLED at 0x3c
@@ -284,13 +284,21 @@ def oled_fastwritetext(textdata, x, y, charht, charwd, fontbytes, mode = 0):
 
 
 def oled_power(turnon = True):
-	cmd = 0xAE
-	if turnon == True:
-		cmd = cmd|1
 	if bus is None:
 		return
 	try:
-		bus.write_byte_data(ADDR_OLED, 0, cmd)
+		if turnon:
+			# Set MUX ratio for 64 rows before turning on
+			bus.write_byte_data(ADDR_OLED, 0, 0xA8)
+			bus.write_byte_data(ADDR_OLED, 0, 0x3F)  # 63 for 64-row display
+			# Set COM pins configuration for 64-row display
+			bus.write_byte_data(ADDR_OLED, 0, 0xDA)
+			bus.write_byte_data(ADDR_OLED, 0, 0x12)  # Alternative COM pin config
+			# Display on
+			bus.write_byte_data(ADDR_OLED, 0, 0xAF)
+		else:
+			# Display off
+			bus.write_byte_data(ADDR_OLED, 0, 0xAE)
 	except:
 		return
 
@@ -325,6 +333,30 @@ def oled_reset():
 	if bus is None:
 		return
 	try:
+		# Display off during init
+		bus.write_byte_data(ADDR_OLED, 0, 0xAE)
+
+		# Set MUX ratio for 64 rows
+		bus.write_byte_data(ADDR_OLED, 0, 0xA8)
+		bus.write_byte_data(ADDR_OLED, 0, 0x3F)  # 63 for 64-row display
+
+		# Set display offset to 0
+		bus.write_byte_data(ADDR_OLED, 0, 0xD3)
+		bus.write_byte_data(ADDR_OLED, 0, 0x00)
+
+		# Set display start line to 0
+		bus.write_byte_data(ADDR_OLED, 0, 0x40)
+
+		# Set segment re-map (column 127 to SEG0)
+		bus.write_byte_data(ADDR_OLED, 0, 0xA1)
+
+		# Set COM output scan direction (remapped)
+		bus.write_byte_data(ADDR_OLED, 0, 0xC8)
+
+		# Set COM pins configuration for 64-row display
+		bus.write_byte_data(ADDR_OLED, 0, 0xDA)
+		bus.write_byte_data(ADDR_OLED, 0, 0x12)  # Alternative COM pin config
+
 		# Set COM-H Addressing
 		bus.write_byte_data(ADDR_OLED, 0, 0x20)
 		bus.write_byte_data(ADDR_OLED, 0, 0x1)
@@ -347,6 +379,9 @@ def oled_reset():
 
 		# Set Display Start Line
 		bus.write_byte_data(ADDR_OLED, 0, 0x40)
+
+		# Display on (after all config is complete)
+		bus.write_byte_data(ADDR_OLED, 0, 0xAF)
 	except:
 		return
 
